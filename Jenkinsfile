@@ -1,1 +1,54 @@
-pipeline { agent any stages { stage('Build') { steps { sh 'docker build -t my-docker-image .' } } stage('Push to Docker Hub') { steps { withCredentials([usernamePassword(credentialsId: 'docker-hub', passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USERNAME')]) { sh 'echo $DOCKER_HUB_PASSWORD | docker login --username $DOCKER_HUB_USERNAME --password-stdin' sh 'docker tag my-docker-image:latest my-docker-image:$BUILD_NUMBER' sh 'docker push my-docker-image:latest' sh 'docker push my-docker-image:$BUILD_NUMBER' } } } stage('Deploy to AWS EC2') { steps { withCredentials([sshUserPrivateKey(credentialsId: 'ssh-key', keyFileVariable: 'SSH_KEY', passphraseVariable: '', usernameVariable: 'SSH_USERNAME')]) { sshagent(['ssh-key']) { sh 'ssh -o StrictHostKeyChecking=no $SSH_USERNAME@<EC2_INSTANCE_IP> "docker pull my-docker-image:$BUILD_NUMBER && docker stop my-container && docker rm my-container && docker run -d --name my-container -p 80:3000 my-docker-image:$BUILD_NUMBER"' } } } } } }
+pipeline {
+    agent any 
+    tools {
+        maven "3.8.5"
+    
+    }
+    stages {
+        stage('Compile and Clean') { 
+            steps {
+                // Run Maven on a Unix agent.
+              
+                sh "mvn clean compile"
+            }
+        }
+        stage('deploy') { 
+            
+            steps {
+                sh "mvn package"
+            }
+        }
+        stage('Build Docker image'){
+          
+            steps {
+                echo "Hello Java Express"
+                sh 'ls'
+                sh 'docker build -t  anvbhaskar/docker_jenkins_springboot:${BUILD_NUMBER} .'
+            }
+        }
+        stage('Docker Login'){
+            
+            steps {
+                 withCredentials([string(credentialsId: 'DockerId', variable: 'Dockerpwd')]) {
+                    sh "docker login -u anvbhaskar -p ${Dockerpwd}"
+                }
+            }                
+        }
+        stage('Docker Push'){
+            steps {
+                sh 'docker push anvbhaskar/docker_jenkins_springboot:${BUILD_NUMBER}'
+            }
+        }
+        stage('Docker deploy'){
+            steps {
+               
+                sh 'docker run -itd -p  8081:8080 anvbhaskar/docker_jenkins_springboot:${BUILD_NUMBER}'
+            }
+        }
+        stage('Archving') { 
+            steps {
+                 archiveArtifacts '**/target/*.jar'
+            }
+        }
+    }
+}
