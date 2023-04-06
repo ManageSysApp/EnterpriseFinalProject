@@ -1,7 +1,7 @@
 pipeline {
     agent any 
     tools {
-        maven "3.8.5"
+        maven "3.8.4"
     
     }
     stages {
@@ -21,16 +21,16 @@ pipeline {
         stage('Build Docker image'){
           
             steps {
-                echo "Hello Java Express"
+                echo "Hello World"
                 sh 'ls'
-                sh 'docker build -t  anvbhaskar/docker_jenkins_springboot:${BUILD_NUMBER} .'
+                sh 'docker build -t .'
             }
         }
         stage('Docker Login'){
             
             steps {
-                 withCredentials([string(credentialsId: 'DockerId', variable: 'Dockerpwd')]) {
-                    sh "docker login -u anvbhaskar -p ${Dockerpwd}"
+                 withCredentials([string(credentialsId: 'EnterpriseFinalProject', variable: 'Dockerpwd')]) {
+                    sh "docker login -u EnterpriseFinalProject -p ${Dockerpwd}"
                 }
             }                
         }
